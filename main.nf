@@ -167,6 +167,7 @@ workflow {
     ch_multiqc_files = ch_multiqc_files.mix(RECONST_DTIMETRICS.out.mqc)
 
     /* FODF */ 
+    if ( params.run_fodf ) {
     RECONST_FRF(ch_for_reconst.map{ it + [[], [], []]})
     ch_for_reconst_fodf = ch_for_reconst
                             .join(RECONST_DTIMETRICS.out.fa)
@@ -174,7 +175,7 @@ workflow {
                             .join(RECONST_FRF.out.frf)
                             .map{ it + [[], []]}
     RECONST_FODF(ch_for_reconst_fodf)
-
+    }
     /* QBALL */
     RECONST_QBALL(ch_for_reconst)
 
