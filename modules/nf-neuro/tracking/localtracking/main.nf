@@ -31,6 +31,7 @@ process TRACKING_LOCALTRACKING {
     def local_seeding_mask = task.ext.local_seeding_mask_type ?: "wm"
 
     def local_step = task.ext.local_step ? "--step " + task.ext.local_step : ""
+    def local_step_pct = task.ext.local_step_pct ? task.ext.local_step_pct : ""
     def local_random_seed = task.ext.local_random_seed ? "--seed " + task.ext.local_random_seed : ""
     def local_seeding = task.ext.local_seeding ? "--" + task.ext.local_seeding : ""
     def local_nbr_seeds = task.ext.local_nbr_seeds ? "" + task.ext.local_nbr_seeds : ""
@@ -47,10 +48,27 @@ process TRACKING_LOCALTRACKING {
 
     def run_qc = task.ext.run_qc ? task.ext.run_qc : false
 
+    if (local_step && local_step_pct) {
+        log.warn "Both local_step and local_step_pct are set for ${meta.id}. local_step will take priority and local_step_pct will be ignored."
+    }
+
     """
+    # Set home directory. This is problematic if the container is run
+    # with non-root user which does not create a home directory. When
+    # running the local tracking using GPU, its trying to write to
+    # ~/.cache/ directory, causing the job to fail.
+    mkdir -p /tmp
+    export HOME=/tmp
+
     export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
     export OMP_NUM_THREADS=1
     export OPENBLAS_NUM_THREADS=1
+
+    local_step_size="$local_step"
+    if [[ -z "$local_step" ]] && [[ -n "$local_step_pct" ]]; then
+        pixdim=\$(scil_header_print_info $wm --keys pixdim | tr -d '[]' | awk '{for(i=2;i<=4;i++) if(\$i>0 && (\$i<min || min=="")) min=\$i} END {print min}')
+        local_step_size=\$(awk -v pixdim="\$pixdim" -v pct="$local_step_pct" 'BEGIN {printf "--step %.6f", pixdim * pct / 100}')
+    fi
 
     if [ "${local_tracking_mask}" == "wm" ]; then
         scil_volume_math lower_threshold $wm \
@@ -83,7 +101,7 @@ process TRACKING_LOCALTRACKING {
     scil_tracking_local $fodf ${prefix}__local_seeding_mask.nii.gz \
             ${prefix}__local_tracking_mask.nii.gz tmp.trk $enable_gpu\
             $local_algo $local_seeding $local_nbr_seeds\
-            $local_random_seed $local_step $local_theta\
+            $local_random_seed \$local_step_size $local_theta\
             $local_sfthres $local_min_len\
             $local_max_len $compress $basis -f
 
@@ -102,7 +120,7 @@ process TRACKING_LOCALTRACKING {
     "random_seed": $task.ext.local_random_seed,
     "is_compress": "${task.ext.local_compress_streamlines}",
     "compress_value": $task.ext.local_compress_value,
-    "step": $task.ext.local_step,
+    "step": \${local_step_size/--step /},
     "theta": $task.ext.local_theta,
     "sfthres": $task.ext.local_sfthres,
     "min_len": $task.ext.local_min_len,

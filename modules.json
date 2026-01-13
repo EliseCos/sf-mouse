@@ -58,7 +58,7 @@
           },
           "tracking/localtracking": {
             "branch": "main",
-            "git_sha": "b21f41f92e1ee439300b7060fc0296b56c6511b9",
+            "git_sha": "ec4f04fd25e3167ba495094925027248722c1aad",
             "installed_by": ["modules"]
           },
           "utils/extractb0": {

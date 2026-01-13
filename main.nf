@@ -88,7 +88,7 @@ workflow {
         }
     }
     else {
-        ch_after_preqc = ch_dwi_bvalbvec.dwi
+        ch_after_preqc = ch_dwi_bvalbvec.dwi_files
         bvs_after_preqc = ch_dwi_bvalbvec.bvs
     }
 
