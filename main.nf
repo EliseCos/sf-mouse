@@ -93,8 +93,8 @@ workflow {
         }
     }
     else {
-        ch_after_preqc = ch_dwi_bvalbvec.dwi_files
-        bvs_after_preqc = ch_dwi_bvalbvec.bvs
+        ch_after_preqc = ch_dwi_bvalbvec.dwi
+        bvs_after_preqc = ch_dwi_bvalbvec.bvs_files
     }
 
     if (params.run_denoising){
