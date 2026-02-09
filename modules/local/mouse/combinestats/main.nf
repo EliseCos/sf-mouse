@@ -21,7 +21,7 @@ process MOUSE_COMBINESTATS {
     
     for curr_stat in $stats_list;
     do
-        bname=\${curr_stat/__stats/}
+        bname=\${curr_stat/stats/}
         mv \$curr_stat stats/\${bname}
     done
 
