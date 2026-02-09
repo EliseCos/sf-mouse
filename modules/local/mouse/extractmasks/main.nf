@@ -23,26 +23,14 @@ process MOUSE_EXTRACTMASKS {
     mouse_extract_masks.py $atlas $labels ${prefix}__masks --merge -f
 
     for curr_label in $labels; do
-        ids=\$(cat ${prefix}__masks/\${curr_label}_\$side.txt)
+        ids=\$(cat ${prefix}__masks/\${curr_label}.txt)
         if [[ \$ids ]]; then
-            scil_labels_combine ${prefix}__masks/${prefix}__\${curr_label}_\$side.nii.gz \
+            scil_labels_combine ${prefix}__masks/${prefix}__\${curr_label}.nii.gz \
                 --volume_ids $atlas \${ids} \
                 --merge_groups -f
-        done
-    done
-    rm -rf ${prefix}__masks/*.txt
-
-    for i in {1..1327}
-        do
-        fslmaths $atlas -thr \$i -uthr \$i -bin tmp_mask.nii.gz
-        voxels=$(fslstats tmp_mask.nii.gz -V | awk '{print $1}')
-        
-        if [ "\$voxels" -gt 0 ]; then
-            mv tmp_mask.nii.gz ${prefix}_mask_\${i}.nii.gz
-        else
-            rm tmp_mask.nii.gz
         fi
     done
+    rm -rf ${prefix}__masks/*.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
