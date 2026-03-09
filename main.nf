@@ -18,8 +18,8 @@ include { MOUSE_EXTRACTMASKS } from './modules/local/mouse/extractmasks/main.nf'
 include { MOUSE_VOLUMEROISTATS } from './modules/local/mouse/volumeroistats/main.nf'
 include { STATS_METRICSINROI as STATS_AMBA } from './modules/nf-neuro/stats/metricsinroi/main'
 include { STATS_METRICSINROI as STATS_AMBA_LR } from './modules/nf-neuro/stats/metricsinroi/main'  
-// include { MOUSE_COMBINESTATS as COMBINESTATS_AMBA } from './modules/local/mouse/combinestats/main.nf'
-// include { MOUSE_COMBINESTATS as COMBINESTATS_AMBA_LR } from './modules/local/mouse/combinestats/main.nf'
+include { MOUSE_COMBINESTATS as COMBINESTATS_AMBA } from './modules/local/mouse/combinestats/main.nf'
+include { MOUSE_COMBINESTATS as COMBINESTATS_AMBA_LR } from './modules/local/mouse/combinestats/main.nf'
 include { MOUSE_COMBINESTATS as COMBINESTATS_MERGED} from './modules/local/mouse/combinestats/main.nf'
 include { MULTIQC } from "./modules/nf-core/multiqc/main"
 include { PRE_QC } from './modules/local/mouse/preqc/main.nf'
@@ -231,18 +231,18 @@ workflow {
     STATS_AMBA_LR(ch_metrics.join(MOUSE_REGISTRATION.out.ANO_LR.combine(ch_lut.map{ it.amba_lr })))
 
 
-    // all_stats_amba = STATS_AMBA.out.stats_json
-                // .map{ _meta, json -> json}
-                // .collect()
-    // all_stats_lr = STATS_AMBA_LR.out.stats_json
-                // .map{ _meta, json -> json}
-                // .collect()
+    all_stats_amba = STATS_AMBA.out.stats_json
+                .map{ _meta, json -> json}
+                .collect()
+    all_stats_lr = STATS_AMBA_LR.out.stats_json
+                .map{ _meta, json -> json}
+                .collect()
     all_stats_merged = MOUSE_VOLUMEROISTATS.out.stats
                 .map{ _meta, json -> json}
                 .collect()
                 
-    // COMBINESTATS_AMBA(all_stats_amba)
-    // COMBINESTATS_AMBA_LR(all_stats_lr)
+    COMBINESTATS_AMBA(all_stats_amba)
+    COMBINESTATS_AMBA_LR(all_stats_lr)
     COMBINESTATS_MERGED(all_stats_merged)
 
     ch_multiqc_files = ch_multiqc_files
