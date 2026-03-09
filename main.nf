@@ -16,6 +16,7 @@ include { TRACKING_MASK } from './modules/local/tracking/mask/main.nf'
 include { TRACKING_LOCALTRACKING } from './modules/nf-neuro/tracking/localtracking/main.nf'
 include { MOUSE_EXTRACTMASKS } from './modules/local/mouse/extractmasks/main.nf'
 include { MOUSE_VOLUMEROISTATS } from './modules/local/mouse/volumeroistats/main.nf'
+include { MOUSE_CONVERTJSON } from './modules/local/mouse/convertjson/main.nf'
 include { MOUSE_COMBINESTATS } from './modules/local/mouse/combinestats/main.nf'
 include { MULTIQC } from "./modules/nf-core/multiqc/main"
 include { PRE_QC } from './modules/local/mouse/preqc/main.nf'
@@ -50,11 +51,13 @@ workflow get_data {
                         .map { mask_file -> def sid = mask_file.parent.name
                         [[id: sid], mask_file] }
         template_channel = Channel.fromPath("$projectDir/assets/reference_rgb_mqc.png")
+        json_channel = Channel.fromPath("$projectDir/assets/reorganize_json.py")
 
     emit:
         dwi   = dwi_channel
         mask  = mask_channel
         template_rgb = template_channel
+        script_json = json_channel
 }
 
 workflow {
@@ -212,6 +215,10 @@ workflow {
     ch_for_stats = ch_metrics
                     .combine(MOUSE_EXTRACTMASKS.out.masks_dir, by: 0)
     MOUSE_VOLUMEROISTATS(ch_for_stats)
+
+    ch_script_json = data.script_json
+    combined_ch = MOUSE_VOLUMEROISTATS.out.stats.combine(ch_script_json)
+    MOUSE_CONVERTJSON(combined_ch)
 
     all_stats = MOUSE_VOLUMEROISTATS.out.stats
                 .map{ _meta, json -> json}
