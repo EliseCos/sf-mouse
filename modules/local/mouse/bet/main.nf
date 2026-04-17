@@ -13,10 +13,10 @@ process MOUSE_BET {
     task.ext.when == null || task.ext.when
 
     script:
-    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    
+
     brain_extraction.py $anat ${prefix}__mask.nii.gz
     fslmaths ${prefix}__mask.nii.gz -bin ${prefix}__mask.nii.gz
     scil_volume_math convert ${prefix}__mask.nii.gz ${prefix}__mask.nii.gz -f --data_type int8
