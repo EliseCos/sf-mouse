@@ -1,7 +1,7 @@
 process MOUSE_BET {
     label 'process_high'
 
-    container "scilus/scilpy:dev"
+    container "scilus/antspynet:dev"
 
     input:
         tuple val(meta), path(anat)
@@ -17,7 +17,7 @@ process MOUSE_BET {
 
     """
 
-    brain_extraction.py $anat ${prefix}__mask.nii.gz
+    antsMouseBrainExtraction $anat ${prefix}__mask.nii.gz
     fslmaths ${prefix}__mask.nii.gz -bin ${prefix}__mask.nii.gz
     scil_volume_math convert ${prefix}__mask.nii.gz ${prefix}__mask.nii.gz -f --data_type int8
 
