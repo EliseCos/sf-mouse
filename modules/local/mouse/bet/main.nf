@@ -16,7 +16,6 @@ process MOUSE_BET {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-
     antsMouseBrainExtraction $anat ${prefix}__mask.nii.gz
     fslmaths ${prefix}__mask.nii.gz -bin ${prefix}__mask.nii.gz
     scil_volume_math convert ${prefix}__mask.nii.gz ${prefix}__mask.nii.gz -f --data_type int8
@@ -31,8 +30,6 @@ process MOUSE_BET {
     """
     fslmaths
     scil_volume_math -h
-
-    touch all__stats.json
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
