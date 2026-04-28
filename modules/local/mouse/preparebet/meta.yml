@@ -1,18 +1,14 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/scilus/nf-neuro/main/modules/meta-schema.json
-name: "preproc_singleeddy"
-description: Apply Eddy (and Topup if already run)
+name: "preparebet"
+description: Prepare anatomical images for brain extraction with BET
 keywords:
-  - BET
-  - T1
-  - eddy
+  - volume
+  - mask
 tools:
   - "scilpy":
       description: "The Sherbrooke Connectivity Imaging Lab (SCIL) Python dMRI processing toolbox."
       homepage: "https://github.com/scilus/scilpy.git"
-  - "FSL":
-      description: "FSL Toolbox and Scilpy Toolbox"
-      homepage: "https://fsl.fmrib.ox.ac.uk/fsl/fslwiki"
 input:
   # Only when we have meta
   - meta:
@@ -22,7 +18,7 @@ input:
         e.g. `[ id:'test', single_end:false ]`
 
   - anat:
-      type: file
+      type: list
       description: Anat Nifti image
       pattern: "*.{nii,nii.gz}"
 
@@ -35,11 +31,10 @@ output:
         Groovy Map containing sample information
         e.g. `[ id:'test', single_end:false ]`
 
-  - mask:
+  - versions:
       type: file
-      description: mask brain-extracted
-      pattern: "*__mask.{nii,nii.gz}"
-
+      description: File containing software versions
+      pattern: "versions.yml"
 
 authors:
   - "@EliseCos"

@@ -1,4 +1,5 @@
-process MOUSE_BET {
+process MOUSE_BRAINEXTRACTION {
+    tag "$meta.id"
     label 'process_high'
 
     container "scilus/antspynet:dev"
@@ -17,8 +18,6 @@ process MOUSE_BET {
 
     """
     antsMouseBrainExtraction $anat ${prefix}__mask.nii.gz
-    fslmaths ${prefix}__mask.nii.gz -bin ${prefix}__mask.nii.gz
-    scil_volume_math convert ${prefix}__mask.nii.gz ${prefix}__mask.nii.gz -f --data_type int8
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

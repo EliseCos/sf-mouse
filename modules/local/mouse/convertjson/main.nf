@@ -25,6 +25,7 @@ process MOUSE_CONVERTJSON {
     """
 
     stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch ${prefix}__stats_reorganized.json
 

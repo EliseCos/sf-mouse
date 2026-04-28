@@ -3,7 +3,7 @@ include { DENOISING_MPPCA } from './modules/nf-neuro/denoising/mppca/main.nf'
 include { PREPROC_SINGLEEDDY } from './modules/local/preproc/singleeddy/main.nf'
 include { UTILS_EXTRACTB0 } from './modules/nf-neuro/utils/extractb0/main.nf'
 include { NNUNET } from './subworkflows/local/nnunet/'
-include { MOUSE_BET } from './modules/local/mouse/bet/main.nf'
+include { BET } from './subworkflows/local/bet/main.nf'
 include { MOUSE_N4 } from './modules/local/mouse/n4/main.nf'
 include { IMAGE_RESAMPLE as RESAMPLE_DWI} from './modules/nf-neuro/image/resample/main.nf'
 include { IMAGE_RESAMPLE as RESAMPLE_MASK} from './modules/nf-neuro/image/resample/main.nf'
@@ -143,14 +143,15 @@ workflow {
     else {
         ch_after_eddy = ch_eddy
     }
-
+    
+    ch_bet = data.anat
     if (params.invivo){
-        MOUSE_BET(data.anat)
+        BET(ch_bet)
         ch_after_eddy = ch_eddy.join(
-            MOUSE_BET.out.mask)
+            BET.out.mask)
     }
     else {
-        ch_after_eddy = ch_eddy
+        ch_after_eddy = ch_eddy 
     }
 
     UTILS_EXTRACTB0(ch_after_eddy)
