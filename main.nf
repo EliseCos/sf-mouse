@@ -149,34 +149,25 @@ workflow {
     else {
         ch_after_eddy = ch_eddy
     }
-    
-    UTILS_EXTRACTB0(ch_after_eddy)
 
     if (params.invivo) {
         BET(ch_bet)
         ch_mask = BET.out.mask
     }
+    else if ( params.data_masked ) {
+        ch_mask = data.mask
+    }
     else {
-        ch_eddy_with_optional_mask = ch_after_eddy
-            .join(data.mask, by: 0, remainder: true)
-
-        ch_mask_split = ch_eddy_with_optional_mask
-            .branch { meta, dwi, bval, bvec, mask ->
-                with_mask: mask != null
-                no_mask:   mask == null}
-
-        ch_mask_from_input = ch_mask_split.with_mask
-            .map { meta, dwi, bval, bvec, mask ->
-                tuple(meta, mask)}
-
-        ch_nnunet = ch_mask_split.no_mask
-            .join(UTILS_EXTRACTB0.out.b0)
-            .map { meta, dwi, bval, bvec, mask, b0 ->
-                tuple(meta, dwi, bval, b0, [])}
-    
+        UTILS_EXTRACTB0(ch_after_eddy)
+        ch_nnunet = ch_after_eddy.join(UTILS_EXTRACTB0.out.b0)
+        .join(data.mask, by: 0, remainder: true)
+                .map { meta, dwi, bval, bvec, b0, mask ->   
+                    [meta, dwi, bval, b0, mask ?: [   ]]}
+        
         NNUNET(ch_nnunet)
-        ch_mask = ch_mask_from_input.mix(NNUNET.out.mask)
-        }
+        
+        ch_mask = NNUNET.out.mask
+    }
 
     if ( params.run_n4 ) {
         ch_N4 = ch_after_eddy
