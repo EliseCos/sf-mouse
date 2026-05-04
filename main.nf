@@ -149,6 +149,7 @@ workflow {
     else {
         ch_after_eddy = ch_eddy
     }
+    UTILS_EXTRACTB0(ch_after_eddy)
 
     if (params.invivo) {
         BET(ch_bet)
@@ -158,7 +159,6 @@ workflow {
         ch_mask = data.mask
     }
     else {
-        UTILS_EXTRACTB0(ch_after_eddy)
         ch_nnunet = ch_after_eddy.join(UTILS_EXTRACTB0.out.b0)
         .join(data.mask, by: 0, remainder: true)
                 .map { meta, dwi, bval, bvec, b0, mask ->   
