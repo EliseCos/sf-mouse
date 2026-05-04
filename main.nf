@@ -160,9 +160,8 @@ workflow {
     }
     else {
         ch_nnunet = ch_after_eddy.join(UTILS_EXTRACTB0.out.b0)
-        .join(data.mask, by: 0, remainder: true)
-                .map { meta, dwi, bval, bvec, b0, mask ->   
-                    [meta, dwi, bval, b0, mask ?: [   ]]}
+                .map { meta, dwi, bval, bvec, b0 ->   
+                    [meta, dwi, bval, b0 ?: [   ]]}
         
         NNUNET(ch_nnunet)
         
