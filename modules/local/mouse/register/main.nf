@@ -16,6 +16,7 @@ process MOUSE_REGISTRATION {
         tuple val(meta), path("*__ANO.nii.gz")              , emit: ANO
         tuple val(meta), path("*__ToM.nii.gz")              , emit: TOM
         tuple val(meta), path("*__moving_check.nii.gz")     , emit: moving_check
+        tuple val(meta), path("*__b0.nii.gz")               , emit: b0
         tuple val(meta), path("*_registration_ants_mqc.gif"), emit: mqc
         path "versions.yml"                                 , emit: versions
 
