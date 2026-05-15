@@ -21,18 +21,17 @@ process MOUSE_BRAINEXTRACTION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        scilpy: \$(uv pip -q -n list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
+        ants: \$(antsMouseBrainExtraction --version 2>&1 | sed -n 's/ANTs Version: v\\([0-9.]\\+\\)/\\1/p')
     END_VERSIONS
     """
 
     stub:
     """
-    fslmaths
-    scil_volume_math -h
+    antsMouseBrainExtraction -h
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        scilpy: \$(uv pip -q -n list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
+        ants: \$(antsMouseBrainExtraction --version 2>&1 | sed -n 's/ANTs Version: v\\([0-9.]\\+\\)/\\1/p')
     END_VERSIONS
     """
 }
