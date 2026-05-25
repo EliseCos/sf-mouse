@@ -3,6 +3,7 @@ include { DENOISING_MPPCA } from './modules/nf-neuro/denoising/mppca/main.nf'
 include { PREPROC_SINGLEEDDY } from './modules/local/preproc/singleeddy/main.nf'
 include { UTILS_EXTRACTB0 } from './modules/nf-neuro/utils/extractb0/main.nf'
 include { NNUNET } from './subworkflows/local/nnunet/'
+include { BET } from './subworkflows/local/bet/main.nf'
 include { MOUSE_N4 } from './modules/local/mouse/n4/main.nf'
 include { IMAGE_RESAMPLE as RESAMPLE_DWI} from './modules/nf-neuro/image/resample/main.nf'
 include { IMAGE_RESAMPLE as RESAMPLE_MASK} from './modules/nf-neuro/image/resample/main.nf'
@@ -36,13 +37,17 @@ workflow get_data {
             log.info ""
             log.info "                         [input]"
             log.info "                           ├-- S1"
-            log.info "                           |   ├-- *dwi.nii.gz"
             log.info "                           |   ├-- *dwi.bval"
-            log.info "                           |   └-- *dwi.bvec"
+            log.info "                           |   ├-- *dwi.bvec"
+            log.info "                           |   ├-- *dwi.nii.gz"
+            log.info "                           |   ├-- *anat.nii.gz (optional)"
+            log.info "                           |   └-- *mask.nii.gz (optional)"
             log.info "                           └-- S2"
-            log.info "                                ├-- *dwi.nii.gz"
-            log.info "                                ├-- *dwi.bval"
-            log.info "                                └-- *dwi.bvec"
+            log.info "                               ├-- *dwi.bval"
+            log.info "                               ├-- *dwi.bvec"
+            log.info "                               ├-- *dwi.nii.gz"
+            log.info "                               ├-- *anat.nii.gz (optional)"
+            log.info "                               └-- *mask.nii.gz (optional)"
             log.info ""
             log.info ""
             error "Please resubmit your command with the previous file structure."
@@ -57,6 +62,10 @@ workflow get_data {
                         .map { mask_file -> def sid = mask_file.parent.name
                         [[id: sid], mask_file] }
         
+        anat_channel = Channel.fromPath("$input/**/*anat.nii.gz")
+                        .map { anat_file -> def sid = anat_file.parent.name
+                        [[id: sid], anat_file] }
+        
         template_channel = Channel.fromPath("$projectDir/assets/reference_rgb_mqc.png")
         
         lut_channel = Channel.of([
@@ -68,6 +77,7 @@ workflow get_data {
     emit:
         dwi   = dwi_channel
         mask  = mask_channel
+        anat = anat_channel
         template_rgb = template_channel
         lut = lut_channel
 }
@@ -96,6 +106,8 @@ workflow {
         }
     ch_ref_rgb = data.template_rgb
     ch_lut = data.lut
+    ch_bet = data.anat
+    ch_mask = Channel.empty()
 
     if ( params.run_preqc ) {
         PRE_QC(ch_dwi_bvalbvec.dwi.join(ch_dwi_bvalbvec.bvs_files).combine(ch_ref_rgb))
@@ -105,6 +117,7 @@ workflow {
             log.warn('Using the output from the preqc module is highly experimental. Please be careful.')
             ch_after_preqc = PRE_QC.out.dwi
             bvs_after_preqc = PRE_QC.out.bvs
+            
         }
         else {
             ch_after_preqc = Channel.empty()
@@ -136,21 +149,31 @@ workflow {
     else {
         ch_after_eddy = ch_eddy
     }
-    
     UTILS_EXTRACTB0(ch_after_eddy)
-    ch_nnunet = ch_after_eddy.join(UTILS_EXTRACTB0.out.b0)
-    .join(data.mask, by: 0, remainder: true)
-            .map { meta, dwi, bval, bvec, b0, mask ->   
-                [meta, dwi, bval, b0, mask ?: [   ]]}  // Use empty list if mask is null
-    
-    NNUNET(ch_nnunet)
+
+    if (params.invivo) {
+        BET(ch_bet)
+        ch_mask = BET.out.mask
+    }
+    else if ( params.data_masked ) {
+        ch_mask = data.mask
+    }
+    else {
+        ch_nnunet = ch_after_eddy.join(UTILS_EXTRACTB0.out.b0)
+                .map { meta, dwi, bval, bvec, b0 ->   
+                    [meta, dwi, bval, b0 ?: [   ]]}
+        
+        NNUNET(ch_nnunet)
+        
+        ch_mask = NNUNET.out.mask
+    }
 
     if ( params.run_n4 ) {
         ch_N4 = ch_after_eddy
             .map{ meta, dwi, _bval, _bvec ->
                     tuple(meta, dwi)}
             .join(UTILS_EXTRACTB0.out.b0)
-            .join(NNUNET.out.mask)
+            .join(ch_mask)
         MOUSE_N4(ch_N4)
         ch_after_n4 = MOUSE_N4.out.dwi_n4
     }
@@ -161,7 +184,7 @@ workflow {
 
     if ( params.run_resampling ) {
         RESAMPLE_DWI(ch_after_n4.map{ meta, dwi -> [meta, dwi, []] }) // Add an empty list for the optional reference image
-        RESAMPLE_MASK(NNUNET.out.mask.map{ meta, mask -> [meta, mask, []] })
+        RESAMPLE_MASK(ch_mask.map{ meta, mask -> [meta, mask, []] })
         IMAGE_CONVERT(RESAMPLE_MASK.out.image)
 
         dwi_after_resample = RESAMPLE_DWI.out.image
@@ -169,7 +192,7 @@ workflow {
     }
     else {
         dwi_after_resample = ch_after_n4
-        IMAGE_CONVERT(NNUNET.out.mask)
+        IMAGE_CONVERT(ch_mask)
         mask_after_resample = IMAGE_CONVERT.out.image
     }
     
@@ -187,13 +210,15 @@ workflow {
     ch_multiqc_files = ch_multiqc_files.mix(RECONST_DTIMETRICS.out.mqc)
 
     /* FODF */ 
-    RECONST_FRF(ch_for_reconst.map{ it + [[], [], []]})
-    ch_for_reconst_fodf = ch_for_reconst
-                            .join(RECONST_DTIMETRICS.out.fa)
-                            .join(RECONST_DTIMETRICS.out.md)
-                            .join(RECONST_FRF.out.frf)
-                            .map{ it + [[], []]}
-    RECONST_FODF(ch_for_reconst_fodf)
+    if ( params.run_fodf_metrics ) {
+        RECONST_FRF(ch_for_reconst.map{ it + [[], [], []]})
+        ch_for_reconst_fodf = ch_for_reconst
+                                .join(RECONST_DTIMETRICS.out.fa)
+                                .join(RECONST_DTIMETRICS.out.md)
+                                .join(RECONST_FRF.out.frf)
+                                .map{ it + [[], []]}
+        RECONST_FODF(ch_for_reconst_fodf)
+    }
 
     /* QBALL */
     RECONST_QBALL(ch_for_reconst)

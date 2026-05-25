@@ -184,8 +184,9 @@ process MOUSE_REGISTRATION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-	scilpy: \$(uv -q -n pip list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
+	    scilpy: \$(uv -q -n pip list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
         fsl: \$(flirt -version 2>&1 | sed -n 's/FLIRT version \\([0-9.]\\+\\)/\\1/p')
+        ants: \$(antsRegistration --version 2>&1 | sed -n 's/ANTs Version: v\\([0-9.]\\+\\)/\\1/p')
     END_VERSIONS
     """
 
@@ -206,9 +207,10 @@ process MOUSE_REGISTRATION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-	scilpy: \$(uv -q -n pip list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
+	    scilpy: \$(uv -q -n pip list | grep scilpy | tr -s ' ' | cut -d' ' -f2)
         mrtrix: \$(dwidenoise -version 2>&1 | sed -n 's/== dwidenoise \\([0-9.]\\+\\).*/\\1/p')
         fsl: \$(flirt -version 2>&1 | sed -n 's/FLIRT version \\([0-9.]\\+\\)/\\1/p')
+        ants: \$(antsRegistration --version 2>&1 | sed -n 's/ANTs Version: v\\([0-9.]\\+\\)/\\1/p')
     END_VERSIONS
     """
 }
